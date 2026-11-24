@@ -230,7 +230,7 @@ namespace AlgoLib.Algorithms.Implementations
                 throw new NotFiniteNumberException();
             }
 
-            return _Z_scores;
+            return _Z_scores.Clone();
         }
 
         /// <summary>
@@ -267,7 +267,8 @@ namespace AlgoLib.Algorithms.Implementations
 
             return new KalmanFilterResult()
             {
-                ParameterZScores = _Z_scores,
+                // Copied so later steps don't mutate a result a consumer is still reading
+                ParameterZScores = _Z_scores.Clone(),
                 IndicesMeasured = _indicesInBatch,
                 ParameterValues = _Xk.ToArray(),
                 DeltaT = _deltaT,

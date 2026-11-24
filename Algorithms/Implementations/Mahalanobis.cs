@@ -54,6 +54,9 @@ namespace AlgoLib.Algorithms.Implementations
             _outliers = [];
             _distanceSquared = GetDistanceSquared(kalmanResult.ParameterZScores);
 
+            if (_distanceSquared < 0.0)
+                LogNegativeDistanceSquared(kalmanResult.ParameterZScores);
+
             return _distanceSquared;
         }
 
@@ -168,6 +171,34 @@ namespace AlgoLib.Algorithms.Implementations
             Vector<double> standardDeviations = covariance.Diagonal().Map(Math.Sqrt);
             return Matrix<double>.Build.Dense(covariance.RowCount, covariance.ColumnCount,
                 (i, j) => covariance[i, j] / (standardDeviations[i] * standardDeviations[j])).Inverse();
+        }
+
+
+        private void LogNegativeDistanceSquared(Vector<double> zScores)
+        {
+            Matrix<double> inverseTranspose = _correlationMatrixInversed.Transpose();
+            Matrix<double> symmetrized = (_correlationMatrixInversed + inverseTranspose) / 2.0;
+
+            double minEigenvalue = symmetrized.Evd().EigenValues
+                .Select((System.Numerics.Complex eigenvalue) => eigenvalue.Real)
+                .Min();
+
+            double asymmetry = (_correlationMatrixInversed - inverseTranspose).InfinityNorm();
+
+            Console.WriteLine("=== Negative D2 detected ===");
+            Console.WriteLine($"D2 = {_distanceSquared:R}");
+            Console.WriteLine($"Min eigenvalue of inverse correlation matrix = {minEigenvalue:R}");
+            Console.WriteLine($"Asymmetry of inverse correlation matrix (infinity norm) = {asymmetry:R}");
+            Console.WriteLine($"Matrix dimension = {_correlationMatrixInversed.RowCount}, z-score count = {zScores.Count}, parameter name count = {_parameterNames.Length}");
+            Console.WriteLine("Z-scores:");
+
+            for (int i = 0; i < zScores.Count; i++)
+            {
+                string name = i < _parameterNames.Length ? _parameterNames[i] : "<no name>";
+                Console.WriteLine($"  [{i}] {name} = {zScores[i]:R}");
+            }
+
+            Console.WriteLine("=== End ===");
         }
     }
 }
